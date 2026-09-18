@@ -29,6 +29,6 @@ DriverX applies the useful patterns without copying product branding or source c
 5. Theme tokens define background, surface, text, muted text, border, accent and selection colors.
 6. Actions remain keyboard focusable and the interface uses a consistent 8px spacing rhythm.
 
-Performance defaults are deliberately conservative: directory cache 2 seconds, polling 1 second, two transfers/checkers, 4 MB buffer and bounded read chunks. This targets change visibility and predictable local resource use while leaving rclone/WinFsp responsible for the data path.
+Performance defaults are deliberately conservative: directory cache 2 seconds, attribute cache 1 second, SFTP polling disabled because SFTP has no change-notification API, two transfers/checkers, 4 MB buffer and bounded read chunks. This targets change visibility and predictable local resource use while leaving rclone/WinFsp responsible for the data path.
 
 Reference repositories are used for design study only. The product implementation now lives in `native/DriverX.Desktop` and uses C# with WPF/.NET 8. The earlier Tkinter build remains only as a compatibility fallback. C# was chosen over C++ because rclone and WinFsp already perform the network and filesystem work in native processes; WPF provides native Windows integration with much lower UI development and maintenance cost than a custom C++ frontend.
