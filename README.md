@@ -1,42 +1,45 @@
 # DriverX
 
-## 原生 Windows 版本（推荐）
+DriverX 是一个轻量的 Windows 远程磁盘管理器，把 SFTP、WebDAV、FTP、SMB、S3 和云存储连接映射成普通盘符。界面使用 WPF/Fluent 风格，挂载由 rclone + WinFsp 完成，rclone 进程在后台静默运行。
 
-新版界面位于 `native/DriverX.Desktop`，使用 C#、WPF 和 .NET 8。它提供 Fluent 风格导航、连接卡片、协议中心、设置页与浅色/深色主题，并使用隐藏窗口启动 rclone。
+## 三种发布方式
 
-```powershell
-.\build_native.ps1
-```
+| 发布物 | 适合场景 | 依赖处理 |
+| --- | --- | --- |
+| `DriverX-Portable\\DriverX.exe` | 已安装 WinFsp 的电脑，解压即用 | rclone 和 .NET 已内置 |
+| `DriverX-Online\\Install-DriverX-Online.ps1` | 普通用户首次安装 | 在线下载并安装 WinFsp，显示进度 |
+| `DriverX-Offline\\Install-DriverX-Offline.ps1` | 无网络环境 | 包含 WinFsp MSI，完全离线安装 |
 
-构建后双击 `start_driverx_native.vbs`，或直接运行 `dist\DriverX\DriverX.exe`。程序优先读取 `%APPDATA%\DriverX\profiles.json`，首次运行会载入项目内的 RaiDrive 导入配置。
+便携版已经包含 rclone 和 .NET 运行时。首次挂载仍需要 WinFsp，因为它是 Windows 文件系统驱动，不能只靠复制一个 EXE 替代。安装脚本会自动处理这一步。
 
-轻量 Windows 远程目录映射工具。DriverX 只负责连接配置和挂载管理，文件系统由成熟的 `rclone + WinFsp` 提供。
-
-添加连接支持：SFTP、WebDAV、FTP、SMB、HTTP/HTTPS、S3、Google Drive、OneDrive、Dropbox。协议通过 rclone 后端实现，首版界面已保留统一的盘符、路径和凭据模型。
-
-## 依赖
-
-1. 安装 [WinFsp](https://github.com/winfsp/winfsp/releases)。
-2. 下载 [rclone Windows 版](https://rclone.org/downloads/)，将 `rclone.exe` 放入 PATH，或放到 DriverX 目录。
-3. Python 3.10+（首版使用系统 Tkinter，无第三方 Python 依赖）。
-
-## 运行
+## 构建发布包
 
 ```powershell
-python driverx.py
+.\\packaging\\build_release.ps1 -Version 0.1.0
 ```
 
-日常使用可双击 `start_driverx.vbs`，它现在默认启动原生版本；DriverX 与全部 rclone 子进程都使用 Windows 隐藏窗口标志，不会显示命令行窗口。
+脚本会生成 `release\\DriverX-0.1.0` 下的三个目录。离线包构建时会从 WinFsp 官方发布地址下载签名 MSI；如果只需要便携版，也可以运行 `build_native.ps1`。
 
-首次添加连接后点击“挂载 / 卸载”。配置保存在 `%APPDATA%\DriverX\profiles.json`。生产版本需要把密码改为 Windows Credential Manager，并将 rclone/WinFsp 作为安装包依赖；当前代码是可运行的 MVP 骨架，便于先验证 SFTP 挂载链路。
+## 使用
+
+安装或解压后启动 DriverX，在“添加连接”中选择协议、名称、服务器、凭据和空闲盘符。密码默认以圆点隐藏，可以点击眼睛查看。连接编辑页支持默认 Windows 图标及多种盘符图标。退出或从托盘选择“完全退出”时，DriverX 会先停止自己启动的 rclone 进程，再清理 WinFsp、Windows 网络映射和 Explorer 残留记录。
+
+配置保存于 `%APPDATA%\\DriverX\\profiles.json`。密码目前保存在本地配置文件中，正式面向公众发布前应迁移到 Windows Credential Manager。
+
+## 开发依赖
+
+- Windows 10/11 x64
+- .NET 8 SDK
+- WinFsp（运行挂载功能时需要）
+- rclone 已作为资源嵌入原生桌面版本
+
+## 项目结构
+
+- `native/DriverX.Desktop`：原生 WPF 客户端
+- `packaging`：联网、离线安装脚本和发布构建脚本
+- `import`：本地 RaiDrive 连接导入数据（凭据文件已被 `.gitignore` 排除）
+- `test_*.ps1`：带宽、挂载负载和 SFTP 测试脚本
 
 ## 当前边界
 
-- 首版只开放 SFTP。
-- 需要用户预先安装 rclone 与 WinFsp。
-- 使用 rclone 的 `minimal` 缓存模式，避免默认占用大量磁盘。
-- 删除连接前必须先卸载。
-
-## RaiDrive 迁移测试
-
-`import/raidrive_connections.json` 已从 RaiDrive 日志迁移 8 个 SFTP 连接。当前机器的 SSH 私钥已对 `ime001`、`gpu01`、`gpu02` 验证成功；三条连接都能通过 rclone 列出远程目录，并已完成一次临时 `R:` 盘符挂载/卸载测试。其他连接保留了地址和路径，但需要补充各自认证信息。
+DriverX 优先保证 SFTP 挂载链路和低占用运行。rclone 的目录缓存、属性缓存、读块大小、并发数等参数可以在设置页调整；默认值偏向较低延迟与较小本机负载。删除连接前必须先卸载，程序不会占用已被 Windows 或其他 DriverX 连接使用的盘符。
