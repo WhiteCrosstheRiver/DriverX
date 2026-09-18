@@ -36,6 +36,7 @@ public partial class MainWindow : Window
  static string ActiveMountsPath=>Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),"DriverX","active-mounts.json");
  [DllImport("mpr.dll",CharSet=CharSet.Unicode)] static extern int WNetGetConnection(string localName,StringBuilder remoteName,ref int length);
  [DllImport("mpr.dll",CharSet=CharSet.Unicode)] static extern int WNetCancelConnection2(string name,int flags,bool force);
+ [DllImport("shell32.dll")] static extern void SHChangeNotify(uint eventId,uint flags,IntPtr item1,IntPtr item2);
  const int ConnectUpdateProfile=1;
 
  async void RefreshMountState(object s,RoutedEventArgs e)=>await RefreshMountStateAsync(false);
@@ -66,6 +67,7 @@ public partial class MainWindow : Window
    if(IsOwnedNetworkMount(drive)||wasOwned)RemoveWindowsNetworkMount(drive);
    if(!Environment.GetLogicalDrives().Any(root=>NormalizeDrive(root)==drive))cleaned.Add(drive);
   }
+  ClearExplorerDriverXHistory();
   var remaining=LoadOwnedMounts();foreach(var drive in cleaned)remaining.Remove(drive);SaveOwnedMounts(remaining);
   return new CleanupResult(cleaned);
  }
@@ -99,6 +101,18 @@ public partial class MainWindow : Window
   try{WNetCancelConnection2(drive+":",ConnectUpdateProfile,true);}catch{}
   try{using var net=Process.Start(HiddenStart("net.exe",["use",drive+":","/delete","/y"]));net?.WaitForExit(3000);}catch{}
   try{WNetCancelConnection2(drive+":",ConnectUpdateProfile,true);}catch{}
+ }
+ static void ClearExplorerDriverXHistory()
+ {
+  try
+  {
+   const string path=@"Software\Microsoft\Windows\CurrentVersion\Explorer\MountPoints2";
+   using var points=Registry.CurrentUser.OpenSubKey(path,true);if(points is null)return;
+   var stale=points.GetSubKeyNames().Where(name=>name.StartsWith("##server#driverx-",StringComparison.OrdinalIgnoreCase)||name.StartsWith("##server#sftp",StringComparison.OrdinalIgnoreCase)).ToArray();
+   foreach(var name in stale)points.DeleteSubKeyTree(name,false);
+   if(stale.Length>0)SHChangeNotify(0x08000000,0,IntPtr.Zero,IntPtr.Zero);
+  }
+  catch{}
  }
  static string NormalizeDrive(string drive)=>string.IsNullOrWhiteSpace(drive)?string.Empty:char.ToUpperInvariant(drive.Trim()[0]).ToString();
  static IEnumerable<string> FindLegacyDriverXMounts()=>Environment.GetLogicalDrives().Select(NormalizeDrive).Where(IsLegacyDriverXMount);
