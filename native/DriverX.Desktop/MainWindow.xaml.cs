@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -23,15 +24,61 @@ public partial class MainWindow : Window
 {
  readonly ObservableCollection<ConnectionProfile> profiles=[]; readonly Dictionary<ConnectionProfile,Process> mounts=[]; readonly Forms.NotifyIcon trayIcon; bool shuttingDown;
  static readonly JsonSerializerOptions JsonOptions=new(){PropertyNameCaseInsensitive=true,WriteIndented=true};
- public MainWindow(){InitializeComponent();Microsoft.Win32.SystemEvents.UserPreferenceChanged+=SystemPreferenceChanged;trayIcon=CreateTrayIcon();LoadTheme();LoadProfiles();ConnectionList.ItemsSource=profiles;RenderProtocols();UpdateStatus();}
- Forms.NotifyIcon CreateTrayIcon(){var exe=Process.GetCurrentProcess().MainModule?.FileName;var appIcon=exe is not null?System.Drawing.Icon.ExtractAssociatedIcon(exe):System.Drawing.SystemIcons.Application;var icon=new Forms.NotifyIcon{Icon=appIcon,Text="DriverX · 远程磁盘",Visible=true};var menu=new Forms.ContextMenuStrip();menu.Items.Add("打开 DriverX",null,(_,_)=>ShowFromTray());menu.Items.Add(new Forms.ToolStripSeparator());menu.Items.Add("退出并卸载全部磁盘",null,(_,_)=>{shuttingDown=true;Close();});icon.ContextMenuStrip=menu;icon.DoubleClick+=(_,_)=>ShowFromTray();return icon;}
+ public MainWindow(){InitializeComponent();Microsoft.Win32.SystemEvents.UserPreferenceChanged+=SystemPreferenceChanged;trayIcon=CreateTrayIcon();LoadTheme();LoadProfiles();ConnectionList.ItemsSource=profiles;RenderProtocols();UpdateStatus();Loaded+=async(_,_)=>await RefreshMountStateAsync(true);}
+ Forms.NotifyIcon CreateTrayIcon(){var exe=Process.GetCurrentProcess().MainModule?.FileName;var appIcon=exe is not null?System.Drawing.Icon.ExtractAssociatedIcon(exe):System.Drawing.SystemIcons.Application;var icon=new Forms.NotifyIcon{Icon=appIcon,Text="DriverX · 远程磁盘",Visible=true};var menu=new Forms.ContextMenuStrip();menu.Items.Add("打开 DriverX",null,(_,_)=>ShowFromTray());menu.Items.Add("刷新并清理遗留盘符",null,(_,_)=>Dispatcher.BeginInvoke(new Action(()=>{_ = RefreshMountStateAsync(false);})));menu.Items.Add(new Forms.ToolStripSeparator());menu.Items.Add("完全退出并清理所有 DriverX 盘符",null,(_,_)=>{shuttingDown=true;Close();});icon.ContextMenuStrip=menu;icon.DoubleClick+=(_,_)=>ShowFromTray();return icon;}
  void ShowFromTray(){Show();WindowState=WindowState.Normal;Activate();}
  void TitleBarDrag(object s,MouseButtonEventArgs e){if(e.LeftButton==MouseButtonState.Pressed)DragMove();}
  void MinimizeWindow(object s,RoutedEventArgs e)=>WindowState=WindowState.Minimized;
  void MaximizeWindow(object s,RoutedEventArgs e)=>WindowState=WindowState==WindowState.Maximized?WindowState.Normal:WindowState.Maximized;
  void CloseWindow(object s,RoutedEventArgs e){shuttingDown=true;Close();}
  void WindowClosing(object? sender,System.ComponentModel.CancelEventArgs e){if(shuttingDown)ShutdownMounts();else{shuttingDown=true;ShutdownMounts();}Microsoft.Win32.SystemEvents.UserPreferenceChanged-=SystemPreferenceChanged;trayIcon.Visible=false;trayIcon.Dispose();}
- void ShutdownMounts(){var drives=profiles.Select(p=>p.Drive.TrimEnd(':').ToUpperInvariant()).Concat(mounts.Keys.Select(p=>p.Drive.TrimEnd(':').ToUpperInvariant())).Distinct();foreach(var drive in drives){try{var p=Process.Start(HiddenStart(RclonePath()!,["unmount",$"{drive}:"]));p?.WaitForExit(8000);}catch{}}foreach(var item in mounts.ToArray()){try{if(!item.Value.HasExited)item.Value.Kill(true);}catch{}}mounts.Clear();}
+ void ShutdownMounts(){var drives=profiles.Select(p=>p.Drive).Concat(mounts.Keys.Select(p=>p.Drive));CleanupDriverXMounts(drives,true);foreach(var item in mounts.ToArray()){try{if(!item.Value.HasExited)item.Value.Kill(true);}catch{}}mounts.Clear();foreach(var profile in profiles)profile.IsMounted=false;try{SaveProfiles();}catch{}}
+ static string ActiveMountsPath=>Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),"DriverX","active-mounts.json");
+ [DllImport("mpr.dll",CharSet=CharSet.Unicode)] static extern int WNetGetConnection(string localName,StringBuilder remoteName,ref int length);
+ [DllImport("mpr.dll",CharSet=CharSet.Unicode)] static extern int WNetCancelConnection2(string name,int flags,bool force);
+
+ async void RefreshMountState(object s,RoutedEventArgs e)=>await RefreshMountStateAsync(false);
+ async Task RefreshMountStateAsync(bool startup)
+ {
+  var active=mounts.Keys.Select(p=>p.Drive).ToHashSet(StringComparer.OrdinalIgnoreCase);
+  var candidates=profiles.Where(p=>startup||!active.Contains(p.Drive)).Select(p=>p.Drive).ToArray();
+  StatusText.Text=startup?"正在清理上次遗留的 DriverX 挂载…":"正在刷新并清理遗留挂载…";
+  var cleaned=await Task.Run(()=>CleanupDriverXMounts(candidates,startup,startup?[]:active));
+  if(startup){foreach(var profile in profiles)profile.IsMounted=false;try{SaveProfiles();}catch{}}
+  foreach(var item in mounts.Where(x=>cleaned.Drives.Contains(NormalizeDrive(x.Key.Drive))).ToArray()){try{if(!item.Value.HasExited)item.Value.Kill(true);}catch{}mounts.Remove(item.Key);item.Key.IsMounted=false;}
+  UpdateStatus();
+  if(!startup)MessageBox.Show(cleaned.Count==0?"未发现 DriverX 遗留盘符。":"已清理 "+cleaned.Count+" 个 DriverX 遗留盘符："+string.Join("、",cleaned.Drives.Select(d=>d+":")),"DriverX 刷新",MessageBoxButton.OK,MessageBoxImage.Information);
+ }
+
+ static CleanupResult CleanupDriverXMounts(IEnumerable<string> configuredDrives,bool includeConfigured,IEnumerable<string>? protectedDrives=null)
+ {
+  var candidates=new HashSet<string>(LoadOwnedMounts(),StringComparer.OrdinalIgnoreCase);
+  if(includeConfigured)foreach(var drive in configuredDrives)candidates.Add(NormalizeDrive(drive));
+  foreach(var drive in FindLegacyDriverXMounts())candidates.Add(drive);
+  foreach(var drive in protectedDrives??[])candidates.Remove(NormalizeDrive(drive));
+  var cleaned=new List<string>();
+  foreach(var drive in candidates.Where(d=>d.Length==1&&char.IsLetter(d[0])))
+  {
+   var wasOwned=LoadOwnedMounts().Contains(drive,StringComparer.OrdinalIgnoreCase)||IsLegacyDriverXMount(drive);
+   if(!includeConfigured&&!wasOwned)continue;
+   TryRcloneUnmount(drive);
+   if(IsOwnedNetworkMount(drive)||wasOwned)WNetCancelConnection2(drive+":",0,true);
+   if(!Environment.GetLogicalDrives().Any(root=>NormalizeDrive(root)==drive))cleaned.Add(drive);
+  }
+  var remaining=LoadOwnedMounts();foreach(var drive in cleaned)remaining.Remove(drive);SaveOwnedMounts(remaining);
+  return new CleanupResult(cleaned);
+ }
+ static void TryRcloneUnmount(string drive){try{var r=RclonePath();if(r is null)return;var p=Process.Start(HiddenStart(r,["unmount",drive+":"]));p?.WaitForExit(3000);}catch{}}
+ static string NormalizeDrive(string drive)=>string.IsNullOrWhiteSpace(drive)?string.Empty:char.ToUpperInvariant(drive.Trim()[0]).ToString();
+ static IEnumerable<string> FindLegacyDriverXMounts()=>Environment.GetLogicalDrives().Select(NormalizeDrive).Where(IsLegacyDriverXMount);
+ static bool IsLegacyDriverXMount(string drive){var remote=NetworkRemotePath(drive);return remote is not null&&(remote.StartsWith(@"\\server\driverx-",StringComparison.OrdinalIgnoreCase)||remote.StartsWith(@"\\server\sftp",StringComparison.OrdinalIgnoreCase));}
+ static bool IsOwnedNetworkMount(string drive){var remote=NetworkRemotePath(drive);return remote is not null&&remote.StartsWith(@"\\server\",StringComparison.OrdinalIgnoreCase);}
+ static string? NetworkRemotePath(string drive){try{var length=2048;var value=new StringBuilder(length);return WNetGetConnection(drive+":",value,ref length)==0?value.ToString():null;}catch{return null;}}
+ static HashSet<string> LoadOwnedMounts(){try{return JsonSerializer.Deserialize<HashSet<string>>(File.ReadAllText(ActiveMountsPath))?.Select(NormalizeDrive).Where(d=>d.Length==1).ToHashSet(StringComparer.OrdinalIgnoreCase)??new(StringComparer.OrdinalIgnoreCase);}catch{return new(StringComparer.OrdinalIgnoreCase);}}
+ static void SaveOwnedMounts(IEnumerable<string> drives){try{Directory.CreateDirectory(Path.GetDirectoryName(ActiveMountsPath)!);File.WriteAllText(ActiveMountsPath,JsonSerializer.Serialize(drives.Select(NormalizeDrive).Where(d=>d.Length==1).Distinct()));}catch{}}
+ static void RegisterOwnedMount(string drive){var owned=LoadOwnedMounts();owned.Add(NormalizeDrive(drive));SaveOwnedMounts(owned);}
+ static void ForgetOwnedMount(string drive){var owned=LoadOwnedMounts();owned.Remove(NormalizeDrive(drive));SaveOwnedMounts(owned);}
+ sealed record CleanupResult(IReadOnlyList<string> Drives){public int Count=>Drives.Count;}
  void LoadProfiles(){var user=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),"DriverX","profiles.json");var imported=Path.Combine(AppContext.BaseDirectory,"import","raidrive_connections.json");var file=File.Exists(user)?user:imported;if(!File.Exists(file))return;try{foreach(var p in JsonSerializer.Deserialize<List<ConnectionProfile>>(File.ReadAllText(file),JsonOptions)??[])profiles.Add(p);}catch(Exception e){MessageBox.Show($"读取连接失败：{e.Message}");}}
  void SaveProfiles(){var dir=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),"DriverX");Directory.CreateDirectory(dir);File.WriteAllText(Path.Combine(dir,"profiles.json"),JsonSerializer.Serialize(profiles,JsonOptions));}
  static string? RclonePath(){var embedded=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"DriverX","bin","rclone.exe");try{if(!File.Exists(embedded)){Directory.CreateDirectory(Path.GetDirectoryName(embedded)!);using var input=Assembly.GetExecutingAssembly().GetManifestResourceStream("DriverX.rclone.exe");if(input is not null){using var output=File.Create(embedded);input.CopyTo(output);}}}catch{}if(File.Exists(embedded))return embedded;var bundled=Path.Combine(AppContext.BaseDirectory,"rclone.exe");if(File.Exists(bundled))return bundled;var p=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Microsoft","WinGet","Links","rclone.exe");if(File.Exists(p))return p;return Environment.GetEnvironmentVariable("PATH")?.Split(';').Select(x=>Path.Combine(x,"rclone.exe")).FirstOrDefault(File.Exists);}
@@ -45,7 +92,7 @@ public partial class MainWindow : Window
  void AddConnection(object s,RoutedEventArgs e){try{var d=new ConnectionDialog(null,profiles.Select(p=>p.Drive)){Owner=this};if(d.ShowDialog()==true){profiles.Add(d.Profile);SaveProfiles();UpdateStatus();}}catch(Exception ex){MessageBox.Show($"连接未保存：{ex.Message}","DriverX",MessageBoxButton.OK,MessageBoxImage.Error);}}
  void EditConnection(object s,RoutedEventArgs e){if((s as Button)?.Tag is not ConnectionProfile current||current.IsMounted)return;try{var d=new ConnectionDialog(current,profiles.Where(p=>p!=current).Select(p=>p.Drive)){Owner=this};if(d.ShowDialog()==true){profiles[profiles.IndexOf(current)]=d.Profile;SaveProfiles();UpdateStatus();}}catch(Exception ex){MessageBox.Show($"连接未保存：{ex.Message}","DriverX",MessageBoxButton.OK,MessageBoxImage.Error);}}
  void DeleteConnection(object s,RoutedEventArgs e){if((s as Button)?.Tag is not ConnectionProfile p)return;if(p.IsMounted){MessageBox.Show("请先卸载此连接。","DriverX");return;}if(MessageBox.Show($"确定删除“{p.Name}”？","删除连接",MessageBoxButton.YesNo,MessageBoxImage.Question)==MessageBoxResult.Yes){profiles.Remove(p);SaveProfiles();UpdateStatus();}}
- async void ToggleMount(object s,RoutedEventArgs e){if((s as Button)?.Tag is not ConnectionProfile p)return;if(mounts.TryGetValue(p,out var running)){try{await RunHidden("unmount",$"{p.Drive}:");if(!running.HasExited)running.Kill(true);}catch{}mounts.Remove(p);p.IsMounted=false;UpdateStatus();return;}var driveLetter=char.ToUpperInvariant(p.Drive[0]);var systemConflict=Environment.GetLogicalDrives().Any(d=>char.ToUpperInvariant(d[0])==driveLetter);var profileConflict=profiles.Any(other=>other!=p&&!string.IsNullOrWhiteSpace(other.Drive)&&char.ToUpperInvariant(other.Drive[0])==driveLetter);if(systemConflict||profileConflict){MessageBox.Show($"盘符 {p.Drive.TrimEnd(':').ToUpperInvariant()}: 当前已被 Windows 或其他 DriverX 连接占用。请编辑连接并选择空闲盘符。","盘符冲突",MessageBoxButton.OK,MessageBoxImage.Warning);return;}var r=RclonePath();if(r is null){MessageBox.Show("未找到 rclone，请先安装。");return;}try{var remote="driverx-"+Math.Abs(p.Name.GetHashCode());await RunHidden(BuildConfigArgs(remote,p));var psi=HiddenStart(r,BuildMountArgs(remote,p));mounts[p]=Process.Start(psi)!;p.IsMounted=true;UpdateStatus();}catch(Exception ex){MessageBox.Show($"挂载失败：{ex.Message}");}}
+ async void ToggleMount(object s,RoutedEventArgs e){if((s as Button)?.Tag is not ConnectionProfile p)return;if(mounts.TryGetValue(p,out var running)){try{await RunHidden("unmount",$"{p.Drive}:");if(!running.HasExited)running.Kill(true);}catch{}ForgetOwnedMount(p.Drive);mounts.Remove(p);p.IsMounted=false;UpdateStatus();return;}var driveLetter=char.ToUpperInvariant(p.Drive[0]);var systemConflict=Environment.GetLogicalDrives().Any(d=>char.ToUpperInvariant(d[0])==driveLetter);var profileConflict=profiles.Any(other=>other!=p&&!string.IsNullOrWhiteSpace(other.Drive)&&char.ToUpperInvariant(other.Drive[0])==driveLetter);if(systemConflict||profileConflict){MessageBox.Show($"盘符 {p.Drive.TrimEnd(':').ToUpperInvariant()}: 当前已被 Windows 或其他 DriverX 连接占用。请编辑连接并选择空闲盘符。","盘符冲突",MessageBoxButton.OK,MessageBoxImage.Warning);return;}var r=RclonePath();if(r is null){MessageBox.Show("未找到 rclone，请先安装。");return;}try{var remote="driverx-"+Math.Abs(p.Name.GetHashCode());await RunHidden(BuildConfigArgs(remote,p));var psi=HiddenStart(r,BuildMountArgs(remote,p));mounts[p]=Process.Start(psi)!;RegisterOwnedMount(p.Drive);p.IsMounted=true;UpdateStatus();}catch(Exception ex){MessageBox.Show($"挂载失败：{ex.Message}");}}
  string[] BuildMountArgs(string remote,ConnectionProfile p)=>["mount",$"{remote}:{p.Path}",$"{p.Drive}:","--network-mode","--volname",VolumeName(p),"--dir-cache-time",dirCacheTime,"--attr-timeout",attrTimeout,"--poll-interval","0","--vfs-cache-mode",vfsCacheMode,"--buffer-size",bufferSize,"--transfers",transfers,"--checkers",transfers,"--vfs-read-chunk-size",readChunkSize,"--vfs-read-chunk-size-limit","64M"];
  string VolumeName(ConnectionProfile p){var forbidden=Path.GetInvalidFileNameChars().Concat(['\\','/']).ToHashSet();var clean=new string(p.Name.Trim().Where(c=>!forbidden.Contains(c)).ToArray()).Trim();if(string.IsNullOrWhiteSpace(clean))clean="DriverX";if(clean.Length>48)clean=clean[..48];return profiles.Count(other=>other!=p&&string.Equals(other.Name.Trim(),p.Name.Trim(),StringComparison.OrdinalIgnoreCase))>0?$"{clean}-{p.Drive.TrimEnd(':').ToUpperInvariant()}":clean;}
  static string[] BuildConfigArgs(string remote,ConnectionProfile p){var a=new List<string>{"config","create",remote,p.Protocol};if(p.Protocol is "sftp" or "ftp" or "smb"){a.AddRange(["host",p.Host,"user",p.User,"port",p.Port.ToString()]);if(!string.IsNullOrWhiteSpace(p.Password))a.AddRange(["pass",p.Password]);}if(p.Protocol=="sftp"&&!string.IsNullOrWhiteSpace(p.Keyfile))a.AddRange(["key_file",Environment.ExpandEnvironmentVariables(p.Keyfile)]);if(p.Protocol=="webdav")a.AddRange(["url",p.Host,"vendor","other","user",p.User,"pass",p.Password]);return[..a];}

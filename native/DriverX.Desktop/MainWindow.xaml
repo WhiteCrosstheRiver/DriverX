@@ -26,6 +26,7 @@
   <Grid Grid.Column="1" Margin="30,0,12,0">
    <TextBlock Text="远程工作空间" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" FontSize="{DynamicResource CaptionSize}"/>
    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+    <Button Style="{StaticResource CaptionButton}" Click="RefreshMountState" ToolTip="刷新并清理遗留盘符" AutomationProperties.Name="刷新并清理遗留盘符"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE72C;" FontSize="{DynamicResource BodySize}"/></Button>
     <Button Style="{StaticResource CaptionButton}" Click="ShowSettings" ToolTip="设置" AutomationProperties.Name="设置"><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="{DynamicResource BodySize}"/></Button>
     <Border Width="1" Height="16" Background="{DynamicResource BorderBrush}" Margin="10,0"/>
     <Button Style="{StaticResource CaptionButton}" Click="MinimizeWindow" ToolTip="最小化" AutomationProperties.Name="最小化"><Path Data="M 0,5 L 10,5" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.2" Width="10" Height="10"/></Button>
