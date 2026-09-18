@@ -8,6 +8,7 @@ using System.Windows.Media;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
+using System.Windows.Input;
 using System.Reflection;
 using Forms = System.Windows.Forms;
 using Button = System.Windows.Controls.Button;
@@ -23,6 +24,10 @@ public partial class MainWindow : Window
  public MainWindow(){InitializeComponent();trayIcon=CreateTrayIcon();LoadTheme();LoadProfiles();ConnectionList.ItemsSource=profiles;RenderProtocols();UpdateStatus();}
  Forms.NotifyIcon CreateTrayIcon(){var exe=Process.GetCurrentProcess().MainModule?.FileName;var appIcon=exe is not null?System.Drawing.Icon.ExtractAssociatedIcon(exe):System.Drawing.SystemIcons.Application;var icon=new Forms.NotifyIcon{Icon=appIcon,Text="DriverX · 远程磁盘",Visible=true};var menu=new Forms.ContextMenuStrip();menu.Items.Add("打开 DriverX",null,(_,_)=>ShowFromTray());menu.Items.Add(new Forms.ToolStripSeparator());menu.Items.Add("退出并卸载全部磁盘",null,(_,_)=>{shuttingDown=true;Close();});icon.ContextMenuStrip=menu;icon.DoubleClick+=(_,_)=>ShowFromTray();return icon;}
  void ShowFromTray(){Show();WindowState=WindowState.Normal;Activate();}
+ void TitleBarDrag(object s,MouseButtonEventArgs e){if(e.LeftButton==MouseButtonState.Pressed)DragMove();}
+ void MinimizeWindow(object s,RoutedEventArgs e)=>WindowState=WindowState.Minimized;
+ void MaximizeWindow(object s,RoutedEventArgs e)=>WindowState=WindowState==WindowState.Maximized?WindowState.Normal:WindowState.Maximized;
+ void CloseWindow(object s,RoutedEventArgs e){shuttingDown=true;Close();}
  void WindowClosing(object? sender,System.ComponentModel.CancelEventArgs e){if(shuttingDown)ShutdownMounts();else{shuttingDown=true;ShutdownMounts();}trayIcon.Visible=false;trayIcon.Dispose();}
  void ShutdownMounts(){var drives=profiles.Select(p=>p.Drive.TrimEnd(':').ToUpperInvariant()).Concat(mounts.Keys.Select(p=>p.Drive.TrimEnd(':').ToUpperInvariant())).Distinct();foreach(var drive in drives){try{var p=Process.Start(HiddenStart(RclonePath()!,["unmount",$"{drive}:"]));p?.WaitForExit(8000);}catch{}}foreach(var item in mounts.ToArray()){try{if(!item.Value.HasExited)item.Value.Kill(true);}catch{}}mounts.Clear();}
  void LoadProfiles(){var user=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),"DriverX","profiles.json");var imported=Path.Combine(AppContext.BaseDirectory,"import","raidrive_connections.json");var file=File.Exists(user)?user:imported;if(!File.Exists(file))return;try{foreach(var p in JsonSerializer.Deserialize<List<ConnectionProfile>>(File.ReadAllText(file),JsonOptions)??[])profiles.Add(p);}catch(Exception e){MessageBox.Show($"读取连接失败：{e.Message}");}}
