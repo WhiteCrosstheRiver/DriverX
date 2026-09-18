@@ -147,7 +147,7 @@ class DriverX(Appearance, tk.Tk):
             if p.get('user'): args += ["user", p['user']]
             if p.get('password'): args += ["pass", p['password']]
         subprocess.run(args, capture_output=True, text=True, **hidden_process_options())
-        mount_args = [binary, "mount", f"{remote}:{p.get('path', '/') or '/'}", p["drive"] + ":", "--network-mode", "--dir-cache-time", "30s", "--poll-interval", "0", "--vfs-cache-mode", "minimal"]
+        mount_args = [binary, "mount", f"{remote}:{p.get('path', '/') or '/'}", p["drive"] + ":", "--network-mode", "--dir-cache-time", "2s", "--poll-interval", "1s", "--vfs-cache-mode", "minimal", "--buffer-size", "4M", "--transfers", "2", "--checkers", "2", "--vfs-read-chunk-size", "8M", "--vfs-read-chunk-size-limit", "64M"]
         proc = subprocess.Popen(mount_args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **hidden_process_options())
         self.mounts[i] = proc
         self.after(0, self.refresh)

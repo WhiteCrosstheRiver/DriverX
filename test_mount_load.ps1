@@ -1,0 +1,11 @@
+param([ValidatePattern('^[A-Za-z]$')][string]$Drive='T',[ValidateRange(32,1024)][int]$SizeMB=256,[ValidateRange(1,16)][int]$Concurrency=4)
+$ErrorActionPreference='Stop'
+$tag=[guid]::NewGuid().ToString('N');$source=Join-Path $env:TEMP "driverx-load-$tag.bin";$root="$($Drive.ToUpperInvariant()):\fzm\tmp";$targets=1..$Concurrency|ForEach-Object{"$root\.__driverx_load_${tag}_$_.bin"};$jobs=@();$samples=@()
+try{
+  $fs=[IO.File]::Open($source,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::Read);$fs.SetLength($SizeMB*1MB);$fs.Dispose()
+  $before=(Get-Process rclone -ErrorAction SilentlyContinue|Measure-Object CPU -Sum).Sum;$watch=[Diagnostics.Stopwatch]::StartNew()
+  for($i=0;$i -lt $targets.Count;$i++){$jobs+=Start-ThreadJob -ScriptBlock{param($src,$dst)Copy-Item -LiteralPath $src -Destination $dst -Force} -ArgumentList $source,$targets[$i]}
+  do{$p=Get-Process rclone -ErrorAction SilentlyContinue;if($p){$samples+=[pscustomobject]@{CPU=$p|Measure-Object CPU -Sum|Select-Object -ExpandProperty Sum;WorkingSetMB=[math]::Round(($p|Measure-Object WorkingSet64 -Sum).Sum/1MB,1)}};Start-Sleep -Milliseconds 500;$done=($jobs|Where-Object State -in 'Completed','Failed').Count}while($done -lt $jobs.Count)
+  $watch.Stop();$after=(Get-Process rclone -ErrorAction SilentlyContinue|Measure-Object CPU -Sum).Sum;$jobs|Wait-Job|Out-Null;$errors=$jobs|Receive-Job -ErrorAction SilentlyContinue;$peak=($samples|Measure-Object WorkingSetMB -Maximum).Maximum;$cpu=[math]::Round((($after-$before)/$watch.Elapsed.TotalSeconds/[Environment]::ProcessorCount)*100,1)
+  [pscustomobject]@{Drive="$($Drive.ToUpperInvariant()):";SizePerTransferMB=$SizeMB;Concurrency=$Concurrency;ElapsedSeconds=[math]::Round($watch.Elapsed.TotalSeconds,2);AggregateWriteMBps=[math]::Round(($SizeMB*$Concurrency)/$watch.Elapsed.TotalSeconds,2);ApproxRcloneCpuPercent=$cpu;PeakRcloneWorkingSetMB=$peak;JobErrors=($jobs|Where-Object State -eq Failed).Count}|Format-List
+}finally{$jobs|Remove-Job -Force -ErrorAction SilentlyContinue;Remove-Item -LiteralPath $targets -Force -ErrorAction SilentlyContinue;Remove-Item -LiteralPath $source -Force -ErrorAction SilentlyContinue;[pscustomobject]@{CleanupLocal=(-not(Test-Path $source));CleanupRemote=(($targets|Where-Object{Test-Path $_}).Count -eq 0)}|Format-List}
