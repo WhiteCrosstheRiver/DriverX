@@ -32,10 +32,11 @@ public partial class MainWindow : Window
  void MaximizeWindow(object s,RoutedEventArgs e)=>WindowState=WindowState==WindowState.Maximized?WindowState.Normal:WindowState.Maximized;
  void CloseWindow(object s,RoutedEventArgs e){shuttingDown=true;Close();}
  void WindowClosing(object? sender,System.ComponentModel.CancelEventArgs e){if(shuttingDown)ShutdownMounts();else{shuttingDown=true;ShutdownMounts();}Microsoft.Win32.SystemEvents.UserPreferenceChanged-=SystemPreferenceChanged;trayIcon.Visible=false;trayIcon.Dispose();}
- void ShutdownMounts(){var drives=profiles.Select(p=>p.Drive).Concat(mounts.Keys.Select(p=>p.Drive));CleanupDriverXMounts(drives,true);foreach(var item in mounts.ToArray()){try{if(!item.Value.HasExited)item.Value.Kill(true);}catch{}}mounts.Clear();foreach(var profile in profiles)profile.IsMounted=false;try{SaveProfiles();}catch{}}
+ void ShutdownMounts(){var drives=profiles.Select(p=>p.Drive).Concat(mounts.Keys.Select(p=>p.Drive)).ToArray();StopTrackedMounts();CleanupDriverXMounts(drives,true);mounts.Clear();foreach(var profile in profiles)profile.IsMounted=false;try{SaveProfiles();}catch{}}
  static string ActiveMountsPath=>Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),"DriverX","active-mounts.json");
  [DllImport("mpr.dll",CharSet=CharSet.Unicode)] static extern int WNetGetConnection(string localName,StringBuilder remoteName,ref int length);
  [DllImport("mpr.dll",CharSet=CharSet.Unicode)] static extern int WNetCancelConnection2(string name,int flags,bool force);
+ const int ConnectUpdateProfile=1;
 
  async void RefreshMountState(object s,RoutedEventArgs e)=>await RefreshMountStateAsync(false);
  async Task RefreshMountStateAsync(bool startup)
@@ -61,14 +62,44 @@ public partial class MainWindow : Window
   {
    var wasOwned=LoadOwnedMounts().Contains(drive,StringComparer.OrdinalIgnoreCase)||IsLegacyDriverXMount(drive);
    if(!includeConfigured&&!wasOwned)continue;
-   TryRcloneUnmount(drive);
-   if(IsOwnedNetworkMount(drive)||wasOwned)WNetCancelConnection2(drive+":",0,true);
+   StopDriverXMountProcesses(drive);
+   if(IsOwnedNetworkMount(drive)||wasOwned)RemoveWindowsNetworkMount(drive);
    if(!Environment.GetLogicalDrives().Any(root=>NormalizeDrive(root)==drive))cleaned.Add(drive);
   }
   var remaining=LoadOwnedMounts();foreach(var drive in cleaned)remaining.Remove(drive);SaveOwnedMounts(remaining);
   return new CleanupResult(cleaned);
  }
- static void TryRcloneUnmount(string drive){try{var r=RclonePath();if(r is null)return;var p=Process.Start(HiddenStart(r,["unmount",drive+":"]));p?.WaitForExit(3000);}catch{}}
+ void StopTrackedMounts(){foreach(var item in mounts.ToArray()){try{if(!item.Value.HasExited){item.Value.Kill(true);item.Value.WaitForExit(3000);}}catch{}}}
+ static void StopDriverXMountProcesses(string drive)
+ {
+  foreach(var id in FindDriverXMountProcessIds(drive))try{using var process=Process.GetProcessById(id);if(!process.HasExited){process.Kill(true);process.WaitForExit(3000);}}catch{}
+ }
+ static IEnumerable<int> FindDriverXMountProcessIds(string drive)
+ {
+  try
+  {
+   const string query="Get-CimInstance Win32_Process -Filter \"Name='rclone.exe'\" | Select-Object ProcessId,CommandLine | ConvertTo-Json -Compress";
+   var shell=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),"WindowsPowerShell","v1.0","powershell.exe");
+   var psi=HiddenStart(shell,["-NoProfile","-NonInteractive","-Command",query]);
+   using var process=Process.Start(psi);if(process is null)return [];
+   var output=process.StandardOutput.ReadToEnd();process.WaitForExit(5000);if(string.IsNullOrWhiteSpace(output))return [];
+   using var json=JsonDocument.Parse(output);var rows=json.RootElement.ValueKind==JsonValueKind.Array?json.RootElement.EnumerateArray().ToArray():[json.RootElement];
+   return rows.Where(row=>row.TryGetProperty("CommandLine",out var command)&&TargetsDrive(command.GetString(),drive)&&row.TryGetProperty("ProcessId",out var id)).Select(row=>row.GetProperty("ProcessId").GetInt32()).ToArray();
+  }
+  catch{return [];}
+ }
+ static bool TargetsDrive(string? command,string drive)
+ {
+  if(string.IsNullOrWhiteSpace(command)||!command.Contains(" mount ",StringComparison.OrdinalIgnoreCase))return false;
+  var target=NormalizeDrive(drive)+":";
+  return command.Split((char[]?)null,StringSplitOptions.RemoveEmptyEntries).Any(token=>string.Equals(token.Trim('"'),target,StringComparison.OrdinalIgnoreCase));
+ }
+ static void RemoveWindowsNetworkMount(string drive)
+ {
+  try{WNetCancelConnection2(drive+":",ConnectUpdateProfile,true);}catch{}
+  try{using var net=Process.Start(HiddenStart("net.exe",["use",drive+":","/delete","/y"]));net?.WaitForExit(3000);}catch{}
+  try{WNetCancelConnection2(drive+":",ConnectUpdateProfile,true);}catch{}
+ }
  static string NormalizeDrive(string drive)=>string.IsNullOrWhiteSpace(drive)?string.Empty:char.ToUpperInvariant(drive.Trim()[0]).ToString();
  static IEnumerable<string> FindLegacyDriverXMounts()=>Environment.GetLogicalDrives().Select(NormalizeDrive).Where(IsLegacyDriverXMount);
  static bool IsLegacyDriverXMount(string drive){var remote=NetworkRemotePath(drive);return remote is not null&&(remote.StartsWith(@"\\server\driverx-",StringComparison.OrdinalIgnoreCase)||remote.StartsWith(@"\\server\sftp",StringComparison.OrdinalIgnoreCase));}
