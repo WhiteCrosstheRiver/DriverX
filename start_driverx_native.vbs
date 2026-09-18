@@ -1,7 +1,8 @@
 Set shell = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 base = fso.GetParentFolderName(WScript.ScriptFullName)
-exe = fso.BuildPath(base, "dist\DriverX\DriverX.exe")
+exe = fso.BuildPath(base, "DriverX.exe")
+If Not fso.FileExists(exe) Then exe = fso.BuildPath(base, "dist\DriverX\DriverX.exe")
 If fso.FileExists(exe) Then
   shell.Run Chr(34) & exe & Chr(34), 1, False
 Else

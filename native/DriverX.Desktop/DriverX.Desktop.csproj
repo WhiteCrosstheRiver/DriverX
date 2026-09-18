@@ -16,5 +16,8 @@
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\rclone.exe" LogicalName="DriverX.rclone.exe" />
+  </ItemGroup>
 
 </Project>

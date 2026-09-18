@@ -20,6 +20,7 @@ id_ed25519*
 
 # Build and publish output
 dist/
+release/
 native/**/bin/
 native/**/obj/
 native/**/TestResults/

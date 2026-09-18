@@ -8,6 +8,7 @@ using System.Windows.Media;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
+using System.Reflection;
 
 namespace DriverX.Desktop;
 public partial class MainWindow : Window
@@ -17,7 +18,7 @@ public partial class MainWindow : Window
  public MainWindow(){InitializeComponent();LoadTheme();LoadProfiles();ConnectionList.ItemsSource=profiles;RenderProtocols();UpdateStatus();}
  void LoadProfiles(){var user=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),"DriverX","profiles.json");var imported=Path.Combine(AppContext.BaseDirectory,"import","raidrive_connections.json");var file=File.Exists(user)?user:imported;if(!File.Exists(file))return;try{foreach(var p in JsonSerializer.Deserialize<List<ConnectionProfile>>(File.ReadAllText(file),JsonOptions)??[])profiles.Add(p);}catch(Exception e){MessageBox.Show($"读取连接失败：{e.Message}");}}
  void SaveProfiles(){var dir=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),"DriverX");Directory.CreateDirectory(dir);File.WriteAllText(Path.Combine(dir,"profiles.json"),JsonSerializer.Serialize(profiles,JsonOptions));}
- static string? RclonePath(){var p=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Microsoft","WinGet","Links","rclone.exe");if(File.Exists(p))return p;return Environment.GetEnvironmentVariable("PATH")?.Split(';').Select(x=>Path.Combine(x,"rclone.exe")).FirstOrDefault(File.Exists);}
+ static string? RclonePath(){var embedded=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"DriverX","bin","rclone.exe");try{if(!File.Exists(embedded)){Directory.CreateDirectory(Path.GetDirectoryName(embedded)!);using var input=Assembly.GetExecutingAssembly().GetManifestResourceStream("DriverX.rclone.exe");if(input is not null){using var output=File.Create(embedded);input.CopyTo(output);}}}catch{}if(File.Exists(embedded))return embedded;var bundled=Path.Combine(AppContext.BaseDirectory,"rclone.exe");if(File.Exists(bundled))return bundled;var p=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Microsoft","WinGet","Links","rclone.exe");if(File.Exists(p))return p;return Environment.GetEnvironmentVariable("PATH")?.Split(';').Select(x=>Path.Combine(x,"rclone.exe")).FirstOrDefault(File.Exists);}
  void UpdateStatus(){CountText.Text=$"{profiles.Count} 个连接  ·  {mounts.Count} 个挂载";StatusText.Text=RclonePath() is null?"未找到 rclone":"rclone + WinFsp 就绪 · 后台静默运行";StatusDot.Fill=new SolidColorBrush(RclonePath() is null?Color.FromRgb(230,81,74):Color.FromRgb(32,178,107));ConnectionList.Items.Refresh();}
  void SetPage(string title,string sub,UIElement page){PageTitle.Text=title;PageSubtitle.Text=sub;DrivesPage.Visibility=ProtocolsPage.Visibility=SettingsPage.Visibility=InfoPage.Visibility=Visibility.Collapsed;page.Visibility=Visibility.Visible;AddButton.Visibility=page==DrivesPage?Visibility.Visible:Visibility.Collapsed;}
  void ShowDrives(object s,RoutedEventArgs e)=>SetPage("我的磁盘","连接远程存储，像本地磁盘一样使用。",DrivesPage);
