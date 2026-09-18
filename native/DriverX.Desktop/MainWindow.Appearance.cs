@@ -16,6 +16,12 @@ public partial class MainWindow
     string selectedFont = "fluent";
     double selectedSize = 14;
     string selectedLanguage = "zh-CN";
+    string dirCacheTime = "2s";
+    string attrTimeout = "1s";
+    string vfsCacheMode = "minimal";
+    string bufferSize = "4M";
+    string transfers = "2";
+    string readChunkSize = "8M";
     bool appearanceReady;
     static string SettingsPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DriverX", "native-settings.json");
     static readonly string[] PaletteKeys = ["AppBackground", "SidebarBackground", "CardBackground", "ControlBackground", "TextPrimary", "TextSecondary", "BorderBrush", "Accent", "AccentSoft", "OnAccent", "Danger", "FocusBrush", "HoverOverlay"];
@@ -57,7 +63,14 @@ public partial class MainWindow
         StandardSizeChoice.IsChecked = selectedSize == 14;
         LargeSizeChoice.IsChecked = selectedSize == 16;
         LanguageChoice.SelectedValue = selectedLanguage;
+        DirCacheChoice.SelectedValue = dirCacheTime;
+        AttrTimeoutChoice.SelectedValue = attrTimeout;
+        VfsCacheChoice.SelectedValue = vfsCacheMode;
+        BufferSizeChoice.SelectedValue = bufferSize;
+        TransfersChoice.SelectedValue = transfers;
+        ReadChunkChoice.SelectedValue = readChunkSize;
         ApplyLanguage();
+        UpdateMountSettingsSummary();
         UpdateWindowTheme();
     }
 
@@ -81,6 +94,12 @@ public partial class MainWindow
             settings["font"] = selectedFont;
             settings["textSize"] = selectedSize;
             settings["language"] = selectedLanguage;
+            settings["dirCacheTime"] = dirCacheTime;
+            settings["attrTimeout"] = attrTimeout;
+            settings["vfsCacheMode"] = vfsCacheMode;
+            settings["bufferSize"] = bufferSize;
+            settings["transfers"] = transfers;
+            settings["readChunkSize"] = readChunkSize;
             Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
             File.WriteAllText(SettingsPath, settings.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
         }
@@ -99,6 +118,12 @@ public partial class MainWindow
                 if (root.TryGetProperty("font", out var font) && font.GetString() is "fluent" or "classic") selectedFont = font.GetString()!;
                 if (root.TryGetProperty("textSize", out var size) && size.TryGetDouble(out var value) && value is 14 or 16) selectedSize = value;
                 if (root.TryGetProperty("language", out var language) && language.GetString() is "zh-CN" or "ja-JP" or "en-US" or "fr-FR") selectedLanguage = language.GetString()!;
+                if (root.TryGetProperty("dirCacheTime", out var dirCache) && dirCache.GetString() is "1s" or "2s" or "5s" or "10s") dirCacheTime = dirCache.GetString()!;
+                if (root.TryGetProperty("attrTimeout", out var attr) && attr.GetString() is "0s" or "1s" or "2s" or "5s") attrTimeout = attr.GetString()!;
+                if (root.TryGetProperty("vfsCacheMode", out var vfs) && vfs.GetString() is "minimal" or "writes" or "full") vfsCacheMode = vfs.GetString()!;
+                if (root.TryGetProperty("bufferSize", out var buffer) && buffer.GetString() is "0" or "4M" or "8M" or "16M") bufferSize = buffer.GetString()!;
+                if (root.TryGetProperty("transfers", out var transfer) && transfer.GetString() is "1" or "2" or "4") transfers = transfer.GetString()!;
+                if (root.TryGetProperty("readChunkSize", out var chunk) && chunk.GetString() is "4M" or "8M" or "16M" or "32M") readChunkSize = chunk.GetString()!;
             }
         }
         catch (Exception ex) when (ex is IOException or JsonException or InvalidOperationException or UnauthorizedAccessException) { }
@@ -120,6 +145,39 @@ public partial class MainWindow
         selectedLanguage = language;
         ApplyLanguage();
         SaveAppearance();
+    }
+
+    void MountSettingsChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!appearanceReady) return;
+        dirCacheTime = DirCacheChoice.SelectedValue as string ?? "2s";
+        attrTimeout = AttrTimeoutChoice.SelectedValue as string ?? "1s";
+        vfsCacheMode = VfsCacheChoice.SelectedValue as string ?? "minimal";
+        bufferSize = BufferSizeChoice.SelectedValue as string ?? "4M";
+        transfers = TransfersChoice.SelectedValue as string ?? "2";
+        readChunkSize = ReadChunkChoice.SelectedValue as string ?? "8M";
+        UpdateMountSettingsSummary();
+        SaveAppearance();
+    }
+
+    void ResetMountDefaults(object sender, RoutedEventArgs e)
+    {
+        dirCacheTime = "2s"; attrTimeout = "1s"; vfsCacheMode = "minimal";
+        bufferSize = "4M"; transfers = "2"; readChunkSize = "8M";
+        DirCacheChoice.SelectedValue = dirCacheTime; AttrTimeoutChoice.SelectedValue = attrTimeout;
+        VfsCacheChoice.SelectedValue = vfsCacheMode; BufferSizeChoice.SelectedValue = bufferSize;
+        TransfersChoice.SelectedValue = transfers; ReadChunkChoice.SelectedValue = readChunkSize;
+        UpdateMountSettingsSummary();
+        SaveAppearance();
+    }
+
+    void UpdateMountSettingsSummary()
+    {
+        if (MountDefaultsStatus is null) return;
+        var defaults = dirCacheTime == "2s" && attrTimeout == "1s" && vfsCacheMode == "minimal" && bufferSize == "4M" && transfers == "2" && readChunkSize == "8M";
+        MountDefaultsStatus.Text = (defaults ? "✓ 正在使用推荐默认值：" : "当前自定义：") + $"目录 {dirCacheTime} · 属性 {attrTimeout} · {vfsCacheMode} · 缓冲 {bufferSize} · 并发 {transfers} · 分块 {readChunkSize}";
+        if (DriveLatencyText is not null) DriveLatencyText.Text = $"目录 {dirCacheTime} · 属性 {attrTimeout}";
+        ConnectionList?.Items.Refresh();
     }
 
     void ApplyLanguage()

@@ -7,10 +7,13 @@ namespace DriverX.Desktop;
 public partial class ConnectionDialog : Window
 {
     public ConnectionProfile Profile { get; private set; } = new();
+    readonly HashSet<char> reservedDrives;
+    bool passwordVisible;
 
-    public ConnectionDialog(ConnectionProfile? source = null)
+    public ConnectionDialog(ConnectionProfile? source = null, IEnumerable<string>? configuredDrives = null)
     {
         InitializeComponent();
+        reservedDrives = GetReservedDrives(configuredDrives);
         if (source is not null)
         {
             ProfileName.Text = source.Name;
@@ -24,6 +27,7 @@ public partial class ConnectionDialog : Window
             foreach (ComboBoxItem item in Protocol.Items)
                 if ((item.Tag as string) == source.Protocol) { Protocol.SelectedItem = item; break; }
         }
+        else Drive.Text = FindAvailableDrive();
         UpdateProtocolFields();
     }
 
@@ -69,6 +73,50 @@ public partial class ConnectionDialog : Window
         label.Visibility = input.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    static HashSet<char> GetReservedDrives(IEnumerable<string>? configuredDrives)
+    {
+        var drives = new HashSet<char>();
+        foreach (var root in Environment.GetLogicalDrives())
+            if (root.Length > 0) drives.Add(char.ToUpperInvariant(root[0]));
+        foreach (var drive in configuredDrives ?? [])
+            if (!string.IsNullOrWhiteSpace(drive)) drives.Add(char.ToUpperInvariant(drive.Trim()[0]));
+        return drives;
+    }
+
+    string FindAvailableDrive()
+    {
+        for (var letter = 'Z'; letter >= 'D'; letter--)
+            if (!reservedDrives.Contains(letter)) return letter.ToString();
+        return string.Empty;
+    }
+
+    void PasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (!passwordVisible) VisiblePassword.Text = Password.Password;
+    }
+
+    void TogglePasswordVisibility(object sender, RoutedEventArgs e)
+    {
+        passwordVisible = !passwordVisible;
+        if (passwordVisible)
+        {
+            VisiblePassword.Text = Password.Password;
+            Password.Visibility = Visibility.Collapsed;
+            VisiblePassword.Visibility = Visibility.Visible;
+            VisiblePassword.Focus();
+            VisiblePassword.CaretIndex = VisiblePassword.Text.Length;
+            PasswordRevealButton.ToolTip = "隐藏密码";
+        }
+        else
+        {
+            Password.Password = VisiblePassword.Text;
+            VisiblePassword.Visibility = Visibility.Collapsed;
+            Password.Visibility = Visibility.Visible;
+            Password.Focus();
+            PasswordRevealButton.ToolTip = "显示密码";
+        }
+    }
+
     void Cancel(object sender, RoutedEventArgs e) => DialogResult = false;
 
     void Save(object sender, RoutedEventArgs e)
@@ -89,6 +137,12 @@ public partial class ConnectionDialog : Window
             MessageBox.Show("本地盘符必须是一个英文字母。");
             return;
         }
+        var driveLetter = char.ToUpperInvariant(Drive.Text.Trim()[0]);
+        if (reservedDrives.Contains(driveLetter))
+        {
+            MessageBox.Show($"盘符 {driveLetter}: 已被本机磁盘、网络磁盘或其他 DriverX 连接占用，请选择其他盘符。", "盘符不可用", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
 
         Profile = new ConnectionProfile
         {
@@ -97,7 +151,7 @@ public partial class ConnectionDialog : Window
             Host = Host.Text.Trim(),
             Port = int.TryParse(Port.Text, out var port) ? port : protocol == "ftp" ? 21 : 22,
             User = User.Text.Trim(),
-            Password = Password.Password,
+            Password = passwordVisible ? VisiblePassword.Text : Password.Password,
             Keyfile = Keyfile.Text.Trim(),
             Path = string.IsNullOrWhiteSpace(RemotePath.Text) ? "/" : RemotePath.Text.Trim(),
             Drive = Drive.Text.Trim().ToUpperInvariant()
