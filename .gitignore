@@ -1,0 +1,44 @@
+# Python and local runtime state
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.log
+
+# Local credentials and connection state
+profiles.json
+appearance.json
+native-settings.json
+import/raidrive_connections.json
+import/RaiDrive-*/
+import/**/EBWebView/
+import/**/Local-RaiDrive/
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+
+# Build and publish output
+dist/
+native/**/bin/
+native/**/obj/
+native/**/TestResults/
+
+# Local mounts and generated test folders
+test-mount-*/
+.__driverx_*
+down_*
+
+# Large UI study checkouts are documented in DESIGN_REFERENCE.md
+vendor/ui-reference/
+vendor/rclone/
+vendor/winfsp/
+vendor/sshfs-win/
+
+# IDE and OS files
+.vs/
+.idea/
+*.user
+*.suo
+Thumbs.db
+Desktop.ini
