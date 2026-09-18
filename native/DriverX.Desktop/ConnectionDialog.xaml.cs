@@ -13,6 +13,8 @@ public partial class ConnectionDialog : Window
     public ConnectionDialog(ConnectionProfile? source = null, IEnumerable<string>? configuredDrives = null)
     {
         InitializeComponent();
+        DriveIcon.ItemsSource = DriveAppearance.Options;
+        DriveIcon.SelectedValue = source?.DriveIconId ?? -1;
         reservedDrives = GetReservedDrives(configuredDrives);
         if (source is not null)
         {
@@ -147,6 +149,7 @@ public partial class ConnectionDialog : Window
         Profile = new ConnectionProfile
         {
             Protocol = protocol,
+            DriveIconId = DriveIcon.SelectedValue is int iconId ? iconId : -1,
             Name = ProfileName.Text.Trim(),
             Host = Host.Text.Trim(),
             Port = int.TryParse(Port.Text, out var port) ? port : protocol == "ftp" ? 21 : 22,
