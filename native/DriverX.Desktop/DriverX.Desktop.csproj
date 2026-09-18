@@ -9,6 +9,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>DriverX</AssemblyName>
     <RootNamespace>DriverX.Desktop</RootNamespace>
+    <ApplicationIcon>Assets\driverx.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
