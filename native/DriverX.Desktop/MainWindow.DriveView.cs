@@ -38,7 +38,7 @@ public partial class MainWindow
         var densityButtons=new[]{"紧凑","标准","舒适"};
         for(var i=0;i<densityButtons.Length;i++){var index=i;var button=SegmentButton(densityButtons[i],driveView.Density==index+1);button.Click+=(_,_)=>{driveView.Density=index+1;ApplyDriveView();SaveDriveView();RefreshSegments(layout,density);};density.Children.Add(button);}
         mountedFirstChoice=new CheckBox{Content="已挂载磁盘优先显示",IsChecked=driveView.MountedFirst,Margin=new Thickness(0,0,0,18)};
-        var settingsScroll=(ScrollViewer)SettingsPage.Content;((StackPanel)settingsScroll.Content).Children.Insert(0,mountedFirstChoice);
+        ((StackPanel)SettingsPage.Content).Children.Insert(0,mountedFirstChoice);
         mountedFirstChoice.Click+=(_,_)=>{driveView.MountedFirst=mountedFirstChoice.IsChecked==true;ApplyDriveView();SaveDriveView();};
         ApplyDriveView();
     }
