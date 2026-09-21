@@ -1,5 +1,17 @@
 # DriverX
 
+## 下载 v0.1.1
+
+[发布说明及下载](https://github.com/WhiteCrosstheRiver/DriverX/releases/tag/v0.1.1)
+
+- Portable.zip：解压后运行 DriverX.exe，内置 .NET 与 rclone；挂载需要已安装 WinFsp。
+- Online.zip：内含 EXE 与联网安装脚本，下载并安装 WinFsp。
+- Offline.zip：内含 EXE、安装脚本及 WinFsp MSI，无需联网下载依赖。
+
+安装包目前为 ZIP + PowerShell 脚本，解压后在管理员 PowerShell 中运行对应 Install-DriverX 脚本。尚不是图形化 Setup.exe。程序未进行代码签名，此版本供测试使用。
+
+新版包含卡片/列表视图、五档大小、拖动排序、挂载优先、适配浅深主题的 Logo，以及简化的操作菜单。X 隐藏到托盘，电源键或托盘的完全退出负责退出并清理 DriverX 挂载。日/英/法翻译仍有部分动态提示待完善。
+
 DriverX 是一个轻量的 Windows 远程磁盘管理器，把 SFTP、WebDAV、FTP、SMB、S3 和云存储连接映射成普通盘符。界面使用 WPF/Fluent 风格，挂载由 rclone + WinFsp 完成，rclone 进程在后台静默运行。
 
 ## 三种发布方式

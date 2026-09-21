@@ -5,7 +5,7 @@ $target = Join-Path ${env:ProgramFiles} 'DriverX'
 $winfspUrl = 'https://github.com/winfsp/winfsp/releases/download/v2.1/winfsp-2.1.25156.msi'
 
 function Step([string]$text,[int]$percent) { Write-Progress -Activity '安装 DriverX' -Status $text -PercentComplete $percent }
-function Test-WinFsp { Test-Path 'C:\Program Files (x86)\WinFsp\bin\winfsp-x64.dll' -or Test-Path 'C:\Program Files\WinFsp\bin\winfsp-x64.dll' }
+function Test-WinFsp { (Test-Path 'C:\Program Files (x86)\WinFsp\bin\winfsp-x64.dll') -or (Test-Path 'C:\Program Files\WinFsp\bin\winfsp-x64.dll') }
 
 if(-not (Test-WinFsp)) {
   Step '下载 WinFsp 文件系统驱动…' 15

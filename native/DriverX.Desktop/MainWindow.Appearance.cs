@@ -182,6 +182,7 @@ public partial class MainWindow
 
     void ApplyLanguage()
     {
+        UiText.Language=selectedLanguage; LocalizeTree.Apply(this); if(ConnectionList?.ItemsSource is not null)UpdateStatus();
         var language = selectedLanguage switch
         {
             "ja-JP" => new[] { "マイドライブ", "プロトコルセンター", "管理", "アクティビティと状態", "設定", "リモートワークスペース", "リモートストレージをローカルディスクのように接続します。", "＋ 接続を追加", "外観とレイアウト", "テーマと文字設定は個別に変更できます。", "インターフェース言語", "DriverX の表示言語を選択します。" },
@@ -197,3 +198,5 @@ public partial class MainWindow
         var appearanceHint = FindName("AppearanceHint") as TextBlock; if (appearanceHint != null) appearanceHint.Text = language[9];
     }
 }
+
+

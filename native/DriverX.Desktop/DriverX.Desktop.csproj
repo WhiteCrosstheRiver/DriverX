@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -8,18 +8,21 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>DriverX</AssemblyName>
+    <Version>0.1.1</Version>
     <RootNamespace>DriverX.Desktop</RootNamespace>
     <ApplicationIcon>Assets\driverx.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
+    <Resource Include="Assets\driverx-logo.png" />
     <Content Include="..\..\import\raidrive_connections.json" Link="import\raidrive_connections.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Assets\rclone.exe" LogicalName="DriverX.rclone.exe" />
+    <EmbeddedResource Include="Assets\translations.txt" LogicalName="DriverX.translations" /><EmbeddedResource Include="Assets\rclone.exe" LogicalName="DriverX.rclone.exe" />
   </ItemGroup>
 
 </Project>
+

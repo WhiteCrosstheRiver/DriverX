@@ -1,0 +1,49 @@
+应用主题|App theme|テーマ|Thème
+Windows 11 浅色|Windows 11 Light|Windows 11 ライト|Windows 11 clair
+Windows 11 深色|Windows 11 Dark|Windows 11 ダーク|Windows 11 sombre
+GitHub 高对比度|GitHub High contrast|GitHub 高コントラスト|GitHub Contraste élevé
+明亮 · 轻盈|Bright and light|明るく軽快|Clair et léger
+炭灰 · 柔和分层|Charcoal, subtle layers|落ち着いた階調|Anthracite, relief subtil
+深黑 · 清晰边界|Deep black, clear edges|黒と明確な輪郭|Noir, contours nets
+跟随系统|Use system theme|システムに合わせる|Suivre le système
+自动切换浅色与深色|Switch light and dark automatically|明暗を自動切替|Changer automatiquement
+字体方案|Typography|フォント|Typographie
+为中英文分别匹配字体，路径使用等宽字体。|Language-aware fonts; monospace paths.|言語に合わせたフォントと等幅パス。|Polices adaptées ; chemins à chasse fixe.
+Fluent / 微软雅黑|Fluent / Microsoft YaHei|Fluent / Microsoft YaHei|Fluent / Microsoft YaHei
+经典 / 微软雅黑|Classic / Microsoft YaHei|クラシック / Microsoft YaHei|Classique / Microsoft YaHei
+文字大小|Text size|文字サイズ|Taille du texte
+标准 · 14|Standard · 14|標準 · 14|Standard · 14
+舒适 · 16|Large · 16|大 · 16|Grand · 16
+远程工作空间|Remote workspace|リモートワークスペース|Espace de travail distant
+DriverX · 清晰呈现每一个文件|DriverX · Every file in focus|DriverX · ファイルを明瞭に|DriverX · Chaque fichier clairement
+正文、辅助信息和路径，保持各自的阅读层级。|Clear hierarchy for text, details and paths.|本文、詳細、パスを見やすく表示。|Une hiérarchie claire pour le texte et les chemins.
+rclone 挂载参数|rclone mount options|rclone マウント設定|Options de montage rclone
+推荐保留默认值；只有明确遇到延迟、内存或吞吐问题时再调整。|Keep defaults unless latency, memory or throughput needs tuning.|遅延、メモリ、速度に問題がなければ既定値を推奨します。|Conservez les valeurs par défaut sauf besoin de réglage.
+恢复推荐默认值|Restore defaults|既定値に戻す|Rétablir les valeurs par défaut
+目录变更缓存|Directory cache|ディレクトリキャッシュ|Cache des dossiers
+文件属性缓存|Attribute cache|属性キャッシュ|Cache des attributs
+VFS 缓存模式|VFS cache mode|VFS キャッシュモード|Mode de cache VFS
+单文件缓冲区|Per-file buffer|ファイルごとのバッファ|Tampon par fichier
+并发传输|Concurrent transfers|同時転送|Transferts simultanés
+读取分块|Read chunk size|読み取りブロック|Taille des blocs de lecture
+静默挂载|Silent mounting|バックグラウンドマウント|Montage silencieux
+rclone 在后台运行，不显示命令行窗口。|rclone runs in the background without a console.|コンソールを表示せずバックグラウンドで実行。|rclone fonctionne sans fenêtre de console.
+刷新并清理遗留盘符|Refresh and clean stale mounts|更新して残存マウントを整理|Actualiser et nettoyer les montages résiduels
+最小化|Minimize|最小化|Réduire
+最大化|Maximize|最大化|Agrandir
+还原|Restore|元に戻す|Restaurer
+协议中心|Protocols|プロトコル|Protocoles
+活动与状态|Activity and status|アクティビティと状態|Activité et état
+连接远程存储，像本地磁盘一样使用。|Use remote storage like a local drive.|リモートストレージをローカルのように。|Utilisez le stockage distant comme un disque local.
+从一个界面管理常用远程存储协议。|Manage remote storage protocols in one place.|各種プロトコルを一か所で管理。|Gérez les protocoles de stockage au même endroit.
+调整 DriverX 的外观和运行方式。|Customize DriverX appearance and behavior.|DriverX の外観と動作を設定。|Personnalisez l’apparence et le comportement.
+查看挂载进程和运行状态。|View mount processes and status.|マウントプロセスと状態を表示。|Consultez les processus et leur état.
+协议能力|Protocol capabilities|プロトコルの機能|Fonctionnalités des protocoles
+先选协议，只填写它需要的信息。|Choose a protocol, then enter the required details.|プロトコルを選び、必要な情報を入力。|Choisissez un protocole et ses informations requises.
+显示密码|Show password|パスワードを表示|Afficher le mot de passe
+隐藏密码|Hide password|パスワードを隠す|Masquer le mot de passe
+密码和私钥任选其一即可。|Use either a password or a private key.|パスワードまたは秘密鍵を使用。|Utilisez un mot de passe ou une clé privée.
+连接设置|Connection settings|接続設定|Paramètres de connexion
+连接|connections|接続|connexions
+未找到 rclone|rclone not found|rclone が見つかりません|rclone introuvable
+rclone + WinFsp 就绪 · 后台静默运行|rclone + WinFsp ready · Running silently|rclone + WinFsp 準備完了 · バックグラウンド実行|rclone + WinFsp prêts · En arrière-plan
