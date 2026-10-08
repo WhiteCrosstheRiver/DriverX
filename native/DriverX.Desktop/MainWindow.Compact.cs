@@ -18,7 +18,7 @@ public partial class MainWindow
         if(s is not Button {Tag:ConnectionProfile p} button)return;
         var menu=new ContextMenu();
         void Item(string label,RoutedEventHandler handler,bool enabled=true){var item=new MenuItem{Header=label,IsEnabled=enabled};item.Click+=(_,args)=>handler(new Button{Tag=p},args);menu.Items.Add(item);}
-        Item(p.ActionLabel,ToggleMount);Item(UiText.T("打开"),OpenDrive,p.IsMounted);
+        Item(p.ActionLabel,ToggleMount);Item(UiText.T("打开"),OpenDrive,p.IsMounted);Item(UiText.T("重置磁盘"),ResetMount);
         menu.Items.Add(new Separator());Item(UiText.T("编辑"),EditConnection,!p.IsMounted);Item(UiText.T("删除"),DeleteConnection,!p.IsMounted);
         menu.PlacementTarget=button;menu.IsOpen=true;
     }
@@ -33,7 +33,7 @@ public partial class MainWindow
            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"><Ellipse Width="7" Height="7" Fill="{Binding StatusBrush}" Margin="0,0,7,0"/><TextBlock Text="{Binding StatusLabel}" ToolTip="{Binding ConnectionError}"/></StackPanel>
            <TextBlock Grid.Column="3" Text="{Binding Endpoint}" Foreground="{DynamicResource TextSecondary}" TextTrimming="CharacterEllipsis" Margin="0,0,14,0" VerticalAlignment="Center"/>
            <TextBlock Grid.Column="4" Text="{Binding ProtocolLabel}" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
-           <StackPanel Grid.Column="5" Orientation="Horizontal" HorizontalAlignment="Right"><Button Name="PrimaryCompact" Tag="{Binding}" Content="{Binding PrimaryActionLabel}" BorderThickness="0" Padding="10,5"/><Button Name="MoreCompact" Tag="{Binding}" Content="⋯" BorderThickness="0" Padding="10,5"/></StackPanel>
+           <StackPanel Grid.Column="5" Orientation="Horizontal" HorizontalAlignment="Right"><Button Name="PrimaryCompact" Tag="{Binding}" Content="{Binding PrimaryActionLabel}" BorderThickness="0" Padding="10,5"/><Button Name="ResetCompact" Tag="{Binding}" Content="重置" ToolTip="重置磁盘" BorderThickness="0" Padding="8,5"/><Button Name="MoreCompact" Tag="{Binding}" Content="⋯" BorderThickness="0" Padding="10,5"/></StackPanel>
           </Grid>
          </Border>
         </DataTemplate>
@@ -43,6 +43,7 @@ public partial class MainWindow
     {
         if(e.OriginalSource is not Button b)return;
         if(b.Name=="PrimaryCompact"){PrimaryDriveAction(b,e);e.Handled=true;}
+        if(b.Name=="ResetCompact"){ResetMount(b,e);e.Handled=true;}
         if(b.Name=="MoreCompact"){DriveMenu(b,e);e.Handled=true;}
     }
 }

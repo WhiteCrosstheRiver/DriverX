@@ -36,7 +36,9 @@ DriverX 是一个轻量的 Windows 远程磁盘管理器，把 SFTP、WebDAV、F
 
 安装或解压后启动 DriverX，在“添加连接”中选择协议、名称、服务器、凭据和空闲盘符。密码默认以圆点隐藏，可以点击眼睛查看。连接编辑页支持默认 Windows 图标及多种盘符图标。退出或从托盘选择“完全退出”时，DriverX 会先停止自己启动的 rclone 进程，再清理 WinFsp、Windows 网络映射和 Explorer 残留记录。
 
-配置保存于 `%APPDATA%\\DriverX\\profiles.json`。密码目前保存在本地配置文件中，正式面向公众发布前应迁移到 Windows Credential Manager。
+每个磁盘都有“重置”按钮：对已挂载磁盘，停止该盘旧挂载并清理 Windows 盘符映射；对未挂载磁盘，尝试重新连接。服务器不可达时只清理失效映射并显示错误，避免资源管理器继续等待坏盘符。
+
+用户配置保存在本机 `%APPDATA%\\DriverX\\`，包括 `profiles.json`、界面设置、挂载状态及 `logs\\`。RaiDrive 导入文件可放在 `%APPDATA%\\DriverX\\import\\raidrive_connections.json`；导入只在没有 `profiles.json` 时使用。rclone 的连接配置保存在 `%APPDATA%\\rclone\\rclone.conf`，程序缓存位于 `%LOCALAPPDATA%\\DriverX\\bin\\`。这些目录位于 Git 仓库之外，不会随代码推送。密码目前保存在本地配置文件中，正式面向公众发布前应迁移到 Windows Credential Manager。
 
 ## 开发依赖
 
@@ -49,7 +51,7 @@ DriverX 是一个轻量的 Windows 远程磁盘管理器，把 SFTP、WebDAV、F
 
 - `native/DriverX.Desktop`：原生 WPF 客户端
 - `packaging`：联网、离线安装脚本和发布构建脚本
-- `import`：本地 RaiDrive 连接导入数据（凭据文件已被 `.gitignore` 排除）
+- `import`：仅存放不含凭据的导入示例；用户导入数据放在 `%APPDATA%\\DriverX\\import\\`
 - `test_*.ps1`：带宽、挂载负载和 SFTP 测试脚本
 
 ## 当前边界

@@ -14,6 +14,14 @@ public partial class App : System.Windows.Application
     public App()
     {
         DispatcherUnhandledException += OnDispatcherUnhandledException;
+        // Windows logoff/shutdown: stop rclone and remove DriverX drive letters instead of leaving stale entries.
+        SessionEnding += (_, _) => (MainWindow as global::DriverX.Desktop.MainWindow)?.ShutdownForExit();
+        // A crash on a background thread terminates the process; clean up mounts first (best effort).
+        AppDomain.CurrentDomain.UnhandledException += (_, _) =>
+        {
+            try { Dispatcher.Invoke(() => (MainWindow as global::DriverX.Desktop.MainWindow)?.ShutdownForExit(), DispatcherPriority.Send, CancellationToken.None, TimeSpan.FromSeconds(15)); }
+            catch { }
+        };
     }
 
     void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)

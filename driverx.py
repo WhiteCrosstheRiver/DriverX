@@ -50,7 +50,7 @@ class DriverX(Appearance, tk.Tk):
                 saved = json.loads(CONFIG.read_text(encoding="utf-8"))
                 if saved:
                     return saved
-            imported = Path(__file__).with_name('import') / 'raidrive_connections.json'
+            imported = APP_DIR / 'import' / 'raidrive_connections.json'
             if imported.exists():
                 return json.loads(imported.read_text(encoding='utf-8'))
             return []

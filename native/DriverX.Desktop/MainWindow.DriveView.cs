@@ -66,7 +66,19 @@ public partial class MainWindow
     void SortDriveView()
     {
         var view=CollectionViewSource.GetDefaultView(ConnectionList.ItemsSource);if(view is null)return;
-        using(view.DeferRefresh()){view.SortDescriptions.Clear();if(driveView.MountedFirst)view.SortDescriptions.Add(new SortDescription(nameof(ConnectionProfile.IsMounted),ListSortDirection.Descending));}
+        if(view is ListCollectionView list)
+            list.CustomSort=driveView.MountedFirst?Comparer<ConnectionProfile>.Create((left,right)=>{
+                var mounted=right.IsMounted.CompareTo(left.IsMounted);
+                return mounted!=0?mounted:profiles.IndexOf(left).CompareTo(profiles.IndexOf(right));
+            }):null;
+        else using(view.DeferRefresh()){view.SortDescriptions.Clear();if(driveView.MountedFirst)view.SortDescriptions.Add(new SortDescription(nameof(ConnectionProfile.IsMounted),ListSortDirection.Descending));}
+    }
+    void PromoteDrive(ConnectionProfile profile)
+    {
+        var index=profiles.IndexOf(profile);
+        if(index>0)profiles.Move(index,0);
+        SaveProfiles();
+        SortDriveView();
     }
     DataTemplate CreateDriveRow()
     {
@@ -74,7 +86,7 @@ public partial class MainWindow
         var dock=new FrameworkElementFactory(typeof(DockPanel));border.AppendChild(dock);
         var actions=new FrameworkElementFactory(typeof(StackPanel));actions.SetValue(StackPanel.OrientationProperty,Orientation.Horizontal);actions.SetValue(DockPanel.DockProperty,Dock.Right);dock.AppendChild(actions);
         void Action(string caption,RoutedEventHandler handler,bool primary=false){var b=new FrameworkElementFactory(typeof(Button));b.SetBinding(FrameworkElement.TagProperty,new Binding());if(primary)b.SetBinding(Button.ContentProperty,new Binding("ActionLabel"));else b.SetValue(Button.ContentProperty,caption);b.SetValue(Button.PaddingProperty,new Thickness(10,6,10,6));b.SetValue(Button.MarginProperty,new Thickness(4,0,0,0));if(primary)b.SetResourceReference(Button.StyleProperty,"PrimaryButton");b.AddHandler(Button.ClickEvent,handler);actions.AppendChild(b);}
-        Action("",ToggleMount,true);Action("打开",OpenDrive);Action("编辑",EditConnection);Action("删除",DeleteConnection);
+        Action("",ToggleMount,true);Action("打开",OpenDrive);Action("重置磁盘",ResetMount);Action("编辑",EditConnection);Action("删除",DeleteConnection);
         var letter=new FrameworkElementFactory(typeof(TextBlock));letter.SetBinding(TextBlock.TextProperty,new Binding("DriveLabel"));letter.SetValue(TextBlock.WidthProperty,52d);letter.SetValue(TextBlock.FontWeightProperty,FontWeights.Bold);letter.SetResourceReference(TextBlock.ForegroundProperty,"Accent");letter.SetValue(TextBlock.VerticalAlignmentProperty,VerticalAlignment.Center);dock.AppendChild(letter);
         var info=new FrameworkElementFactory(typeof(StackPanel));dock.AppendChild(info);
         void Text(string binding,bool title=false){var t=new FrameworkElementFactory(typeof(TextBlock));t.SetBinding(TextBlock.TextProperty,new Binding(binding));t.SetValue(TextBlock.TextTrimmingProperty,TextTrimming.CharacterEllipsis);t.SetValue(TextBlock.FontSizeProperty,title?new double[]{24,21,18,15,14}[driveView.Density]:12d);t.SetResourceReference(TextBlock.ForegroundProperty,title?"TextPrimary":"TextSecondary");info.AppendChild(t);}

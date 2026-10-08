@@ -10,7 +10,7 @@ public partial class MainWindow
 {
     System.Windows.Point dragOrigin;
     ConnectionProfile? dragProfile;
-    readonly DispatcherTimer healthTimer=new(){Interval=TimeSpan.FromSeconds(15)};
+    readonly DispatcherTimer healthTimer=new(){Interval=TimeSpan.FromSeconds(60)};
     bool checkingHealth;
     void InitializeDriveInteraction()
     {
@@ -45,7 +45,8 @@ public partial class MainWindow
         try{
             foreach(var entry in mounts.ToArray()){
                 var profile=entry.Key;string? error=null;
-                if(entry.Value.HasExited)error="挂载进程已退出";
+                if(entry.Value.HasExited){error="挂载进程已退出";NotifyDriveRemoved(NormalizeDrive(profile.Drive));}
+                else if(NetworkRemotePath(NormalizeDrive(profile.Drive)) is null)error="盘符映射已丢失";
                 else if(profile.Protocol is "sftp" or "ftp" or "smb"){
                     try{using var client=new TcpClient();using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(3));await client.ConnectAsync(profile.Host,profile.Protocol=="smb"?445:profile.Port,timeout.Token);}
                     catch{error="服务器连接失败";}
@@ -53,7 +54,7 @@ public partial class MainWindow
                 if(shuttingDown)return;
                 if(mounts.TryGetValue(profile,out var current)&&current==entry.Value)profile.ConnectionError=error;
             }
-            ConnectionList.Items.Refresh();
+            UpdateStatus();
         }finally{checkingHealth=false;}
     }
 }

@@ -15,14 +15,16 @@
 
   <ItemGroup>
     <Resource Include="Assets\driverx-logo.png" />
-    <Content Include="..\..\import\raidrive_connections.json" Link="import\raidrive_connections.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
-    </Content>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\translations.txt" LogicalName="DriverX.translations" /><EmbeddedResource Include="Assets\rclone.exe" LogicalName="DriverX.rclone.exe" />
   </ItemGroup>
 
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\dark-icons\*.ico">
+      <LogicalName>DriverX.dark.%(Filename).ico</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>
 

@@ -5,7 +5,7 @@ internal static class UiText
     static readonly Dictionary<string,string[]> Texts=new()
     {
         ["打开"]=["Open","開く","Ouvrir"], ["挂载"]=["Mount","マウント","Monter"], ["卸载"]=["Unmount","解除","Démonter"],
-        ["编辑"]=["Edit","編集","Modifier"], ["删除"]=["Delete","削除","Supprimer"],
+        ["编辑"]=["Edit","編集","Modifier"], ["删除"]=["Delete","削除","Supprimer"], ["重置磁盘"]=["Reset drive","ドライブを再接続","Réinitialiser le disque"],
         ["已挂载"]=["Mounted","接続済み","Monté"], ["未挂载"]=["Not mounted","未接続","Non monté"], ["连接异常"]=["Connection error","接続エラー","Erreur de connexion"],
         ["磁盘"]=["Drive","ドライブ","Disque"], ["名称"]=["Name","名前","Nom"], ["状态"]=["Status","状態","État"], ["服务器"]=["Server","サーバー","Serveur"], ["协议"]=["Protocols","プロトコル","Protocoles"], ["操作"]=["Actions","操作","Actions"],
         ["卡片"]=["Cards","カード","Cartes"], ["列表"]=["List","一覧","Liste"], ["巨大"]=["Huge","特大","Très grand"], ["大"]=["Large","大","Grand"], ["中"]=["Medium","中","Moyen"], ["小"]=["Small","小","Petit"], ["迷你"]=["Mini","最小","Mini"],

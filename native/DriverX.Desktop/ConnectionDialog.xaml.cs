@@ -13,8 +13,8 @@ public partial class ConnectionDialog : Window
     public ConnectionDialog(ConnectionProfile? source = null, IEnumerable<string>? configuredDrives = null)
     {
         InitializeComponent(); Loaded += (_,_) => LocalizeTree.Apply(this);
-        DriveIcon.ItemsSource = DriveAppearance.Options;
-        DriveIcon.SelectedValue = source?.DriveIconId ?? -1;
+        DriveIcon.ItemsSource = DriveAppearance.CreateIconView();
+        DriveIcon.SelectedValue = DriveAppearance.NormalizeDriveIconId(source?.DriveIconId ?? -1);
         reservedDrives = GetReservedDrives(configuredDrives);
         if (source is not null)
         {

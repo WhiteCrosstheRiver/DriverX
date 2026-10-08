@@ -9,6 +9,10 @@ venv/
 profiles.json
 appearance.json
 native-settings.json
+active-mounts.json
+drive-view.json
+user-data/
+local-data/
 import/raidrive_connections.json
 import/RaiDrive-*/
 import/**/EBWebView/

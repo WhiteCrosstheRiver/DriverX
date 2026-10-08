@@ -22,6 +22,7 @@ public partial class MainWindow
     string bufferSize = "4M";
     string transfers = "2";
     string readChunkSize = "8M";
+    bool forceDriveIcon = true;
     bool appearanceReady;
     static string SettingsPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DriverX", "native-settings.json");
     static readonly string[] PaletteKeys = ["AppBackground", "SidebarBackground", "CardBackground", "ControlBackground", "TextPrimary", "TextSecondary", "BorderBrush", "Accent", "AccentSoft", "OnAccent", "Danger", "FocusBrush", "HoverOverlay"];
@@ -69,6 +70,7 @@ public partial class MainWindow
         BufferSizeChoice.SelectedValue = bufferSize;
         TransfersChoice.SelectedValue = transfers;
         ReadChunkChoice.SelectedValue = readChunkSize;
+        ForceDriveIconChoice.IsChecked = forceDriveIcon;
         ApplyLanguage();
         UpdateMountSettingsSummary();
         UpdateWindowTheme();
@@ -100,6 +102,7 @@ public partial class MainWindow
             settings["bufferSize"] = bufferSize;
             settings["transfers"] = transfers;
             settings["readChunkSize"] = readChunkSize;
+            settings["forceDriveIcon"] = forceDriveIcon;
             Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
             File.WriteAllText(SettingsPath, settings.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
         }
@@ -124,9 +127,11 @@ public partial class MainWindow
                 if (root.TryGetProperty("bufferSize", out var buffer) && buffer.GetString() is "0" or "4M" or "8M" or "16M") bufferSize = buffer.GetString()!;
                 if (root.TryGetProperty("transfers", out var transfer) && transfer.GetString() is "1" or "2" or "4") transfers = transfer.GetString()!;
                 if (root.TryGetProperty("readChunkSize", out var chunk) && chunk.GetString() is "4M" or "8M" or "16M" or "32M") readChunkSize = chunk.GetString()!;
+                if (root.TryGetProperty("forceDriveIcon", out var force) && force.ValueKind is JsonValueKind.True or JsonValueKind.False) forceDriveIcon = force.GetBoolean();
             }
         }
         catch (Exception ex) when (ex is IOException or JsonException or InvalidOperationException or UnauthorizedAccessException) { }
+        DriveAppearance.ForceDriveIcon = forceDriveIcon;
         ApplyAppearance();
         appearanceReady = true;
     }
@@ -158,6 +163,18 @@ public partial class MainWindow
         readChunkSize = ReadChunkChoice.SelectedValue as string ?? "8M";
         UpdateMountSettingsSummary();
         SaveAppearance();
+    }
+
+    void ForceDriveIconChanged(object sender, RoutedEventArgs e)
+    {
+        if (!appearanceReady) return;
+        forceDriveIcon = ForceDriveIconChoice.IsChecked == true;
+        DriveAppearance.ForceDriveIcon = forceDriveIcon;
+        SaveAppearance();
+        // On: write the DriverX icon for every current DriverX mount right away. Off: drop only overrides DriverX owns.
+        if (forceDriveIcon) foreach (var profile in mounts.Keys.ToArray()) DriveAppearance.Apply(@"\\server\" + VolumeName(profile), profile);
+        else DriveAppearance.RemoveOwnedOverrides([]);
+        StatusText.Text = forceDriveIcon ? "已强制使用 DriverX 磁盘图标" : "已移除 DriverX 写入的盘符图标";
     }
 
     void ResetMountDefaults(object sender, RoutedEventArgs e)
