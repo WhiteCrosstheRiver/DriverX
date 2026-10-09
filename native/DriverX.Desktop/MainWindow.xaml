@@ -88,7 +88,7 @@
        </StackPanel></Border>
       </StackPanel></Border>
       <Border Style="{StaticResource SettingsCard}"><StackPanel>
-       <Grid><StackPanel><TextBlock Text="rclone 挂载参数" FontWeight="SemiBold"/><TextBlock Text="推荐保留默认值；只有明确遇到延迟、内存或吞吐问题时再调整。" Foreground="{DynamicResource TextSecondary}" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel><Button HorizontalAlignment="Right" VerticalAlignment="Top" Click="ResetMountDefaults">恢复推荐默认值</Button></Grid>
+       <Grid><StackPanel><TextBlock Text="挂载参数" FontWeight="SemiBold"/><TextBlock Text="推荐保留默认值；只有明确遇到延迟、内存或吞吐问题时再调整。" Foreground="{DynamicResource TextSecondary}" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel><Button HorizontalAlignment="Right" VerticalAlignment="Top" Click="ResetMountDefaults">恢复推荐默认值</Button></Grid>
        <Grid Margin="0,18,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="18"/><ColumnDefinition/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <StackPanel><TextBlock Text="目录变更缓存"/><ComboBox x:Name="DirCacheChoice" SelectedValuePath="Tag" SelectionChanged="MountSettingsChanged"><ComboBoxItem Content="1 秒 · 更低延迟" Tag="1s"/><ComboBoxItem Content="2 秒 · 推荐" Tag="2s"/><ComboBoxItem Content="5 秒" Tag="5s"/><ComboBoxItem Content="10 秒 · 更省请求" Tag="10s"/></ComboBox></StackPanel>
         <StackPanel Grid.Column="2"><TextBlock Text="文件属性缓存"/><ComboBox x:Name="AttrTimeoutChoice" SelectedValuePath="Tag" SelectionChanged="MountSettingsChanged"><ComboBoxItem Content="0 秒 · 实时" Tag="0s"/><ComboBoxItem Content="1 秒 · 推荐" Tag="1s"/><ComboBoxItem Content="2 秒" Tag="2s"/><ComboBoxItem Content="5 秒" Tag="5s"/></ComboBox></StackPanel>
@@ -99,7 +99,7 @@
        </Grid>
        <TextBlock x:Name="MountDefaultsStatus" Text="推荐：目录 2s · 属性 1s · Minimal · 缓冲 4 MiB · 并发 2 · 分块 8 MiB" Foreground="{DynamicResource Accent}" Margin="0,8,0,0" TextWrapping="Wrap"/>
       </StackPanel></Border>
-      <Border Style="{StaticResource SettingsCard}"><StackPanel><TextBlock Text="静默挂载" FontWeight="SemiBold"/><TextBlock Text="rclone 在后台运行，不显示命令行窗口。" Foreground="{DynamicResource TextSecondary}" Margin="0,6,0,0"/></StackPanel></Border>
+      <Border Style="{StaticResource SettingsCard}"><StackPanel><TextBlock Text="静默挂载" FontWeight="SemiBold"/><TextBlock Text="在后台运行，不显示命令行窗口。" Foreground="{DynamicResource TextSecondary}" Margin="0,6,0,0"/></StackPanel></Border>
      </StackPanel>
     </ScrollViewer>
     <StackPanel x:Name="InfoPage" Visibility="Collapsed"><TextBlock x:Name="InfoText" FontSize="16" TextWrapping="Wrap"/></StackPanel>

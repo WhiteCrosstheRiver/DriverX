@@ -17,7 +17,7 @@ Fluent / 微软雅黑|Fluent / Microsoft YaHei|Fluent / Microsoft YaHei|Fluent /
 远程工作空间|Remote workspace|リモートワークスペース|Espace de travail distant
 DriverX · 清晰呈现每一个文件|DriverX · Every file in focus|DriverX · ファイルを明瞭に|DriverX · Chaque fichier clairement
 正文、辅助信息和路径，保持各自的阅读层级。|Clear hierarchy for text, details and paths.|本文、詳細、パスを見やすく表示。|Une hiérarchie claire pour le texte et les chemins.
-rclone 挂载参数|rclone mount options|rclone マウント設定|Options de montage rclone
+挂载参数|Mount settings|マウント設定|Paramètres de montage
 推荐保留默认值；只有明确遇到延迟、内存或吞吐问题时再调整。|Keep defaults unless latency, memory or throughput needs tuning.|遅延、メモリ、速度に問題がなければ既定値を推奨します。|Conservez les valeurs par défaut sauf besoin de réglage.
 恢复推荐默认值|Restore defaults|既定値に戻す|Rétablir les valeurs par défaut
 目录变更缓存|Directory cache|ディレクトリキャッシュ|Cache des dossiers
@@ -27,7 +27,7 @@ VFS 缓存模式|VFS cache mode|VFS キャッシュモード|Mode de cache VFS
 并发传输|Concurrent transfers|同時転送|Transferts simultanés
 读取分块|Read chunk size|読み取りブロック|Taille des blocs de lecture
 静默挂载|Silent mounting|バックグラウンドマウント|Montage silencieux
-rclone 在后台运行，不显示命令行窗口。|rclone runs in the background without a console.|コンソールを表示せずバックグラウンドで実行。|rclone fonctionne sans fenêtre de console.
+在后台运行，不显示命令行窗口。|Runs in the background, no command window.|コマンドウィンドウを表示せず、バックグラウンドで実行します。|S’exécute en arrière-plan, sans fenêtre de commande.
 刷新并清理遗留盘符|Refresh and clean stale mounts|更新して残存マウントを整理|Actualiser et nettoyer les montages résiduels
 最小化|Minimize|最小化|Réduire
 最大化|Maximize|最大化|Agrandir
@@ -45,5 +45,5 @@ rclone 在后台运行，不显示命令行窗口。|rclone runs in the backgrou
 密码和私钥任选其一即可。|Use either a password or a private key.|パスワードまたは秘密鍵を使用。|Utilisez un mot de passe ou une clé privée.
 连接设置|Connection settings|接続設定|Paramètres de connexion
 连接|connections|接続|connexions
-未找到 rclone|rclone not found|rclone が見つかりません|rclone introuvable
-rclone + WinFsp 就绪 · 后台静默运行|rclone + WinFsp ready · Running silently|rclone + WinFsp 準備完了 · バックグラウンド実行|rclone + WinFsp prêts · En arrière-plan
+未找到内核组件，无法挂载|Core component not found; cannot mount|コアコンポーネントが見つからないため、マウントできません|Composant principal introuvable ; montage impossible
+内核服务启动正常|内核服务启动正常|内核服务启动正常|内核服务启动正常

@@ -98,7 +98,7 @@ public partial class MainWindow
         if(mounts.Keys.Any(other=>other!=profile&&NormalizeDrive(other.Drive)==drive)||
            Environment.GetLogicalDrives().Any(root=>NormalizeDrive(root)==drive))
             throw new IOException($"盘符 {drive}: 已被占用");
-        var rclone=RclonePath()??throw new FileNotFoundException("未找到 rclone");
+        var rclone=RclonePath()??throw new FileNotFoundException("未找到内核组件，无法挂载");
         var remote="driverx-"+Math.Abs(profile.Name.GetHashCode());
         await RunHidden(BuildConfigArgs(remote,profile));
         DriveAppearance.Apply(@"\\server\"+VolumeName(profile),profile);
@@ -106,7 +106,7 @@ public partial class MainWindow
         long logStart=0;
         try{if(File.Exists(log))logStart=new FileInfo(log).Length;}catch{}
         var process=Process.Start(MountStart(rclone,BuildMountArgs(remote,profile)))
-            ??throw new InvalidOperationException("rclone 挂载进程未启动");
+            ??throw new InvalidOperationException("挂载进程未启动");
         mounts[profile]=process;
         WatchMountProcess(process,drive);
         RegisterOwnedMount(drive);
@@ -132,7 +132,7 @@ public partial class MainWindow
         }
         var exited=process.HasExited;
         await UnmountProfileAsync(profile,false);
-        var reason=exited?"rclone 挂载进程已退出":$"盘符在 {(int)MountAppearTimeout.TotalSeconds} 秒内没有出现（服务器登录过慢或无响应）";
+        var reason=exited?"挂载进程已退出":$"盘符在 {(int)MountAppearTimeout.TotalSeconds} 秒内没有出现（服务器登录过慢或无响应）";
         var detail=LastMountLogError(log,logStart);
         throw new IOException(detail is null?reason:$"{reason}：{detail}");
     }
